@@ -4,6 +4,8 @@ import server from "./server";
 function Transfer({ address, setBalance }) {
   const [sendAmount, setSendAmount] = useState("");
   const [recipient, setRecipient] = useState("");
+  const [signature, setSignature] = useState("");
+  const [recoveryBit, setRecoveryBit] = useState("");
 
   const setValue = (setter) => (evt) => setter(evt.target.value);
 
@@ -17,6 +19,8 @@ function Transfer({ address, setBalance }) {
         sender: address,
         amount: parseInt(sendAmount),
         recipient,
+        signature,
+        recoveryBit,
       });
       setBalance(balance);
     } catch (ex) {
@@ -44,6 +48,24 @@ function Transfer({ address, setBalance }) {
           value={recipient}
           onChange={setValue(setRecipient)}
         ></input>
+      </label>
+
+      <label>
+        Signature
+        <input
+          placeholder="Input hashed signature"
+          value={signature}
+          onChange={setValue(setSignature)}
+          ></input>
+      </label>
+
+      <label>
+        Recovery Bit
+        <input
+          placeholder="Set the recovery bit"
+          value={recoveryBit}
+          onChange={setValue(setRecoveryBit)}
+          ></input>
       </label>
 
       <input type="submit" className="button" value="Transfer" />

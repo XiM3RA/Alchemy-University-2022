@@ -2,6 +2,9 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const port = 3042;
+const secp = require("ethereum-cryptography/secp256k1");
+const { toHex, utf8ToBytes } = require("ethereum-cryptography/utils");
+const { keccak256 } = require("ethereum-cryptography/keccak");
 
 app.use(cors());
 app.use(express.json());
@@ -19,13 +22,20 @@ app.get("/balance/:address", (req, res) => {
 });
 
 app.post("/send", (req, res) => {
-  const { sender, recipient, amount } = req.body;
+  const { sender, recipient, amount, signature, recoveryBit } = req.body;
 
   setInitialBalance(sender);
   setInitialBalance(recipient);
 
+  const publicKey = recoverKey("default", signature, Number(recoveryBit));
+  const queriedAccount = toHex(getAddress(publicKey));
+  const balancesKeys = Object.keys(balances);
+  const found = balancesKeys.find((account) => account == queriedAccount);
+
   if (balances[sender] < amount) {
     res.status(400).send({ message: "Not enough funds!" });
+  } else if (!found) {
+    res.status(400).send({ message: "Account not located" });
   } else {
     balances[sender] -= amount;
     balances[recipient] += amount;
@@ -41,4 +51,21 @@ function setInitialBalance(address) {
   if (!balances[address]) {
     balances[address] = 0;
   }
+}
+
+// Hash message
+function hashMessage(message) {
+  return keccak256(utf8ToBytes(message));
+}
+
+// Recover key
+function recoverKey(message, signature, recoveryBit) {
+  return secp.recoverPublicKey(hashMessage(message), signature, recoveryBit);
+}
+
+// Key to address
+function getAddress(publicKey) {
+  const sliced = publicKey.slice(1, publicKey.length);
+  const hashed = keccak256(sliced);
+  return hashed.slice(12, hashed.length);
 }
